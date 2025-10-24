@@ -1,0 +1,69 @@
+# ==========================
+# 🧠 IDE / Editor
+# ==========================
+.idea/
+.vscode/
+/shelf/
+/workspace.xml
+/httpRequests/
+/dataSources/
+/dataSources.local.xml
+
+# ==========================
+# ⚛️ Frontend (React)
+# ==========================
+fe/node_modules/
+fe/build/
+fe/.env
+fe/.env.local
+fe/.env.development.local
+fe/.env.production.local
+fe/.env.test.local
+fe/package-lock.json
+fe/yarn.lock
+fe/.cache/
+fe/coverage/
+fe/npm-debug.log*
+fe/yarn-debug.log*
+fe/yarn-error.log*
+fe/.pnpm-debug.log*
+fe/dist/
+
+# ==========================
+# 🧩 Backend (Express)
+# ==========================
+be/node_modules/
+be/.env
+be/.env.local
+be/logs/
+be/debug.log
+be/npm-debug.log*
+be/yarn-debug.log*
+be/.pnpm-debug.log*
+be/.cache/
+be/tmp/
+be/dist/
+be/build/
+be/uploads/
+be/package-lock.json
+be/yarn.lock
+
+# ==========================
+# ⚙️ Common / System
+# ==========================
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.bak
+*.tmp
+*.lock
+*.log
+
+# ==========================
+# 🔒 Secrets / Certificates
+# ==========================
+*.pem
+*.crt
+*.key
+.env*
