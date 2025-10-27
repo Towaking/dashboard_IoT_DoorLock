@@ -1,6 +1,6 @@
-#define BLYNK_TEMPLATE_ID "TMPL6v2bwU2Rh"
-#define BLYNK_TEMPLATE_NAME "Test"
-#define BLYNK_AUTH_TOKEN "aAVTgKAs4SGcexx4Hqu6Ht0ydWzC0Qes"
+#define BLYNK_TEMPLATE_ID "xxxxxxxx"
+#define BLYNK_TEMPLATE_NAME "xxxxx"
+#define BLYNK_AUTH_TOKEN "xxxxxxxxx"
 
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -10,8 +10,8 @@
 #include <Adafruit_Fingerprint.h>
 
 // -------- WiFi & Blynk --------
-char ssid[] = "Wilhelm";
-char pass[] = "55555555";
+char ssid[] = "xxxxxx";
+char pass[] = "xxxxxx";
 
 // -------- Raspberry Serial --------
 HardwareSerial raspiSerial(1);
