@@ -2,31 +2,40 @@
 import express from 'express';
 import { getPool, sql } from '../db.js';
 import dotenv from 'dotenv';
-dotenv.config();
+import cors from 'cors';
 import { protectCallback } from './auth.js';
 
+dotenv.config();
 const router = express.Router();
+
+// ===== CORS khusus untuk callback (supaya bisa diakses dari Raspberry) =====
+router.use('/callback', cors({
+    origin: '*', // izinkan semua (karena Raspberry mungkin tanpa origin)
+}));
 
 /**
  * GET /api/logs
  * optional query: from=YYYY-MM-DD&to=YYYY-MM-DD
  */
-// routes/logs.js
 router.get('/', async (req, res) => {
     const { from, to } = req.query;
     try {
         const pool = await getPool();
-        let q = `SELECT 
-                    id, 
-                    event_date, 
-                    CONVERT(varchar, event_time, 108) AS event_time, 
-                    user_name, 
-                    fingerprint_id, 
-                    note 
-                 FROM logs`;
+        let q = `
+            SELECT 
+                id, 
+                event_date, 
+                CONVERT(varchar, event_time, 108) AS event_time, 
+                user_name, 
+                fingerprint_id, 
+                note 
+            FROM logs
+        `;
         if (from && to) {
             q += ' WHERE event_date BETWEEN @from AND @to';
-            const request = pool.request().input('from', sql.Date, from).input('to', sql.Date, to);
+            const request = pool.request()
+                .input('from', sql.Date, from)
+                .input('to', sql.Date, to);
             const result = await request.query(q + ' ORDER BY event_date DESC, event_time DESC');
             return res.json(result.recordset);
         } else {
@@ -34,7 +43,7 @@ router.get('/', async (req, res) => {
             return res.json(result.recordset);
         }
     } catch (err) {
-        console.error('GET /api/logs error', err);
+        console.error('❌ GET /api/logs error:', err);
         return res.status(500).json({ error: 'Failed to fetch logs' });
     }
 });
@@ -48,12 +57,16 @@ router.get('/frequency', async (req, res) => {
     const { from, to } = req.query;
     try {
         const pool = await getPool();
-        let q = `SELECT ISNULL(user_name, 'Unknown') AS user_name, COUNT(*) AS cnt
-             FROM logs`;
+        let q = `
+            SELECT ISNULL(user_name, 'Unknown') AS user_name, COUNT(*) AS cnt
+            FROM logs
+        `;
         if (from && to) {
             q += ' WHERE event_date BETWEEN @from AND @to';
             q += ' GROUP BY ISNULL(user_name, \'Unknown\') ORDER BY cnt DESC';
-            const request = pool.request().input('from', sql.Date, from).input('to', sql.Date, to);
+            const request = pool.request()
+                .input('from', sql.Date, from)
+                .input('to', sql.Date, to);
             const result = await request.query(q);
             return res.json(result.recordset);
         } else {
@@ -62,15 +75,16 @@ router.get('/frequency', async (req, res) => {
             return res.json(result.recordset);
         }
     } catch (err) {
-        console.error('GET /api/logs/frequency error', err);
+        console.error('❌ GET /api/logs/frequency error:', err);
         return res.status(500).json({ error: 'Failed to fetch frequency stats' });
     }
 });
 
 /**
  * POST /api/logs/callback
- * Body: { date: "YYYY-MM-DD", time: "HH:MM:SS", user_name, fingerprint_id, note }
- * Protected by x-callback-secret header
+ * Body: { date, time, user_name, fingerprint_id, note }
+ * Bisa diakses dari Raspberry (tanpa CORS)
+ * Tetap aman pakai secret header
  */
 router.post('/callback', protectCallback, async (req, res) => {
     const { date, time, user_name, fingerprint_id, note } = req.body;
@@ -80,18 +94,28 @@ router.post('/callback', protectCallback, async (req, res) => {
         const pool = await getPool();
         const request = pool.request();
         request.input('d', sql.Date, date);
-        request.input('t', sql.Time, time);
+        // Validasi & konversi agar diterima SQL Server
+        let sqlTime = null;
+        if (time) {
+            const [h, m, s] = time.split(':').map(Number);
+            sqlTime = new Date(1970, 0, 1, h || 0, m || 0, s || 0); // waktu dummy
+        }
+        request.input('t', sql.Time, sqlTime);
+
         request.input('u', sql.NVarChar(200), user_name || 'Unknown');
         request.input('fid', sql.NVarChar(100), fingerprint_id || null);
         request.input('note', sql.NVarChar(500), note || null);
 
-        const insertQ = `INSERT INTO logs (event_date, event_time, user_name, fingerprint_id, note)
-                     VALUES (@d, @t, @u, @fid, @note)`;
+        const insertQ = `
+            INSERT INTO logs (event_date, event_time, user_name, fingerprint_id, note)
+            VALUES (@d, @t, @u, @fid, @note)
+        `;
         await request.query(insertQ);
 
+        console.log(`✅ Log received: ${user_name} at ${date} ${time}`);
         return res.json({ message: 'Log saved' });
     } catch (err) {
-        console.error('POST /api/logs/callback error', err);
+        console.error('❌ POST /api/logs/callback error:', err);
         return res.status(500).json({ error: 'Failed to save log' });
     }
 });
